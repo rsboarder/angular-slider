@@ -37,9 +37,9 @@ angular.module('vr.directives.slider')
 					function cursorPosition(ev, index) {
 						var position = -1 * scope.dimensions().sliderOffset;
 						if(ctrl.options.vertical) {
-							position += ev.touches[index].pageY || ev.pageY;
+							position += (ev.touches ? ev.touches[index].pageY : ev.pageY);
 						} else {
-							position += ev.touches[index].pageX || ev.pageX;
+							position += (ev.touches ? ev.touches[index].pageX : ev.pageX);
 						}
 						return position;
 					}
@@ -53,7 +53,7 @@ angular.module('vr.directives.slider')
 						var offset = ctrl.options.vertical?knob[0].offsetTop:knob[0].offsetLeft;
 						return offset - scope.dimensions().sliderOffset;
 					}
-					
+
 					// add the bars
 					elem.prepend($compile("<ng-slider-bar low='"+$interpolate.startSymbol()+" bar.low() "+$interpolate.endSymbol()+"' high='"+$interpolate.startSymbol()+" bar.high() "+$interpolate.endSymbol()+"' ng-repeat='bar in bars'></ng-slider-bar>")(scope));
 
@@ -67,7 +67,7 @@ angular.module('vr.directives.slider')
 						if(ev.targetTouches) {
 							index = ev.targetTouches[0].identifier;
 						}
-						
+
 						// save the starting position(s)
 						if(angular.isArray(scope.currentKnobs[index]) && scope.currentKnobs[index].length > 1) {
 							var cursorPos = cursorPosition(ev, index);
@@ -77,7 +77,7 @@ angular.module('vr.directives.slider')
 						} else {
 							scope.startOffsets[index] = [0];
 						}
-						
+
 						// fire a "move"
 						scope.onMove(ev);
 					};
@@ -130,29 +130,29 @@ angular.module('vr.directives.slider')
 						// remove the knob from the list of knobs currently being dragged
 						var knobs = scope.currentKnobs[index];
 						delete scope.currentKnobs[index];
-						
+
 						if(!angular.isArray(knobs)) {
 							knobs = [knobs];
 						}
-						
+
 						console.log(knobs);
-						
+
 						angular.forEach(knobs, function(knob) {
 							// fire the knob's onEnd callback
 							knob.onEnd();
 						});
-						
+
 						if(scope.currentKnobs.length == 0) {
 							// we're no longer sliding
 							scope.sliding = false;
 						}
 					};
-					
+
 					// set the default events
 					var moveEvents = ['mousemove', 'touchmove'];
                     var cancelEvents = ['mousecancel', 'touchcancel'];
                     var endEvents = ['mouseup', 'touchend'];
-					
+
 					if(window.PointerEvent) {
 						// the browser supports javascript Pointer Events (currently only IE11), use those
 						moveEvents = ['pointermove'];
@@ -164,7 +164,7 @@ angular.module('vr.directives.slider')
 						cancelEvents = ['MSPointerCancel'];
 						endEvents = ['MSPointerUp'];
 					}
-					
+
 					// bind the move events
                     angular.forEach(moveEvents, function(event) {
 						$document.bind(event, function(ev) {
@@ -176,13 +176,13 @@ angular.module('vr.directives.slider')
 							}
 						});
 					});
-					
+
 					// bind the end and cancel events
                     angular.forEach(cancelEvents.concat(endEvents), function(event) {
 						$document.bind(event, function(ev) {
 							if(scope.sliding) {
 								// it's electric, boogie woogie, woogie
-								
+
 								// fire the end events for the drags that are ending
 								if(ev.changedTouches) {
 									for(var i=0; i<ev.changedTouches.length; i++) {
@@ -194,19 +194,19 @@ angular.module('vr.directives.slider')
 							}
 						});
 					});
-					
+
 					// watch for disabilities
                     scope.$watch(function() { return scope.$eval(attr.ngDisabled); }, function(disabled) {
 						// do we have disabilities?
                         scope.disabled = angular.isDefined(disabled) && disabled;
-						
+
 						// tell the DOM
 						if(scope.disabled) {
 							elem.addClass('disabled');
 						} else {
 							elem.removeClass('disabled');
 						}
-						
+
 						if(scope.sliding) {
 							// I wanna wake up where you are, I won't say anything at all
 							angular.forEach(scope.currentKnobs.keys(), function(index) {
@@ -214,7 +214,7 @@ angular.module('vr.directives.slider')
 							});
 						}
                     });
-					
+
 					// watch the attributes and update as necessary
                     attr.$observe('ceiling', function(ceiling) {
                         ceiling = angular.isDefined(ceiling)?parseFloat(ceiling):0;
@@ -246,7 +246,7 @@ angular.module('vr.directives.slider')
                 if(angular.isUndefined(attr.ngModel)) {
                     throw "ngSliderKnob Error: ngModel not specified";
                 }
-				
+
 				// add a class so we can style it
                 elem.addClass('ng-slider-knob');
 
@@ -254,7 +254,7 @@ angular.module('vr.directives.slider')
 					// get the controllers
 					var ngSliderCtrl = ctrls[0];
 					var ngModelCtrl = ctrls[1];
-					
+
 					// is the knob enabled?
 					var enabled = true;
 
@@ -268,7 +268,7 @@ angular.module('vr.directives.slider')
 							scope.$apply();
 						}
 					}
-					
+
 					// register the knob
                     var knob = ngSliderCtrl.registerKnob({
 						ngModel: ngModelCtrl,			// the model
@@ -276,10 +276,10 @@ angular.module('vr.directives.slider')
 						onChange: function(value) {		// what to do when the model changes
 							// sync the model
 							updateModel(value);
-							
+
 							// expose the value to the scope
 							scope.$viewValue = value;
-							
+
 							// set the CSS as needed
 							elem.css(ngSliderCtrl.options.vertical?'top':'left', ngSliderCtrl.valueToPercent(value, elem) + '%');
 						},
@@ -290,23 +290,23 @@ angular.module('vr.directives.slider')
 							elem.removeClass('active');
 						}
 					});
-					
+
 					// watch for disabilities
 					scope.$watch(function() { return scope.$eval(attr.ngDisabled); }, function(disabled) {
 						// is the knob disabled?
 						enabled = !disabled;
-						
+
 						// tell the DOM
 						if(disabled) {
 							elem.addClass('disabled');
 						} else {
 							elem.removeClass('disabled');
 						}
-						
+
 						// tell the slider this knob is disabled
 						knob.disabled()
 					});
-					
+
 					// set the default events
 					var events = ['mousedown', 'touchstart'];
 					if(window.PointerEvent) {
@@ -336,7 +336,7 @@ angular.module('vr.directives.slider')
 			compile: function(elem, attr) {
 				// add the class so we can style it
 				elem.addClass('ng-slider-bar');
-				
+
 				return function(scope, elem, attr, ngSliderCtrl) {
 					// set up the defaults
 					scope.low = 0;
@@ -350,15 +350,15 @@ angular.module('vr.directives.slider')
 					function updateBar() {
 						// get the bar's offset
 						var offset = ngSliderCtrl.valueToPercent(scope.low, scope.lowKnob?scope.lowKnob.elem:null, true);
-						
+
 						// compute the size of the bar
 						var size = ngSliderCtrl.valueToPercent(scope.high, scope.highKnob?scope.highKnob.elem:null, true) - offset;
-						
+
 						// set the CSS
 						elem.css(ngSliderCtrl.options.vertical?'top':'left', offset+"%");
 						elem.css(ngSliderCtrl.options.vertical?'height':'width', size+"%");
 					}
-					
+
 					// register this bar with the slider
 					var bar = ngSliderCtrl.registerBar({
 						elem: elem,
@@ -373,7 +373,7 @@ angular.module('vr.directives.slider')
 							elem.removeClass('active');
 						}
 					});
-					
+
 					// watch the attributes for updates
 					attr.$observe('low', function(low) {
 						scope.low = low;
@@ -383,7 +383,7 @@ angular.module('vr.directives.slider')
 						scope.high = high;
 						updateBar();
 					});
-					
+
 					// set the default events
 					var events = ['mousedown', 'touchstart'];
 					if(window.PointerEvent) {
@@ -416,13 +416,13 @@ angular.module('vr.directives.slider')
 
 		// keep track of the registered knobs
         $scope.knobs = [];
-		
+
 		// keep track of the bars that have been created
 		$scope.bars = [];
-		
+
 		// store the bars registered
 		var registeredBars = [];
-		
+
 		// we'll use this to tell which knob is currently being moved
 		$scope.currentKnobs = [];
 		$scope.startOffsets = [];
@@ -490,7 +490,7 @@ angular.module('vr.directives.slider')
 		}
 
 		/**
-		 * Make sure the correct number of bars exist and all have the right data 
+		 * Make sure the correct number of bars exist and all have the right data
 		 */
 		function updateBars() {
 			// get the knob count
@@ -500,7 +500,7 @@ angular.module('vr.directives.slider')
 			while($scope.bars.length < numKnobs + 1) {
 				addBar();
 			}
-			
+
 			// remove bars so we have one more bar than knobs
 			while($scope.bars.length > numKnobs + 1) {
 				removeBar();
@@ -568,23 +568,23 @@ angular.module('vr.directives.slider')
 		this.valueToPercent = function(value, knob, bar) {
 			// default the knob to a size of 0
 			var knobSize = 0;
-			
+
 			if(knob) {
 				// we've been given a knob, get the size
 				knobSize = this.options.vertical?knob[0].offsetHeight:knob[0].offsetWidth;
 			}
-			
+
 			// compute the percentage size of the knob
 			var knobPercent = knobSize / $scope.dimensions().sliderSize * 100;
-			
+
 			// compute the percent offset of the knob taking into account he size of the knob
 			var percent = (((parseFloat(value) - $scope.floor) / ($scope.ceiling - $scope.floor)) * (100 - knobPercent));
-			
+
 			if(bar && knob) {
 				// we're computing this for a bar and we've been given a knob, add half of the knob back to keep the bar in the middle of the knob
 				percent += knobPercent/2;
 			}
-			
+
 			return percent;
 		};
 
@@ -594,10 +594,10 @@ angular.module('vr.directives.slider')
 		 * @returns {{start: start, disabled: disabled}}
 		 */
         this.registerKnob = function(knob) {
-			
+
 			// is this knob enabled?
 			var enabled = true;
-			
+
 			// add the knob to the list
 			$scope.knobs.push(knob);
 
@@ -611,20 +611,20 @@ angular.module('vr.directives.slider')
 			 * @param value {number}
 			 */
 			function normalizeModel(value) {
-				
+
 				// initialize the bounds
 				var ceiling = $scope.ceiling;
 				var floor = $scope.floor;
-				
+
 				// start with the original value
 				var normalized = parseFloat(value);
-				
+
 				// get the index of the knob so we know the surrounding knobs
 				var index = $scope.knobs.indexOf(knob);
-				
+
 				if(!options.continuous) {
 					// keep the knobs contained to their section of the slider
-					
+
 					if(index > 0) {
 						// this isn't the knob with the lowest value, set the floor to the value of the knob lower than this
 						floor = parseFloat($scope.knobs[index - 1].ngModel.$modelValue) + (options.buffer > 0?options.buffer:0);
@@ -634,13 +634,13 @@ angular.module('vr.directives.slider')
 						ceiling = parseFloat($scope.knobs[index + 1].ngModel.$modelValue) - (options.buffer > 0?options.buffer:0);
 					}
 				}
-				
+
 				if(options.steps > 1) {
 					// there should be more than one step
-					
+
 					// get the width of a step
 					var stepWidth = ($scope.ceiling - $scope.floor) / (options.steps-1);
-					
+
 					if(index > 0) {
 						// this isn't the knob with the lowest value, make sure the floor aligns with a step
 						var floorMod = (floor - $scope.floor) % stepWidth;
@@ -648,7 +648,7 @@ angular.module('vr.directives.slider')
 							floor += stepWidth - floorMod;
 						}
 					}
-					
+
 					if(index < $scope.knobs.length - 1) {
 						// this isn't the knob with the highest value, make sure the ceiling aligns with a step
 						var ceilingMod = (ceiling - $scope.floor) % stepWidth;
@@ -656,7 +656,7 @@ angular.module('vr.directives.slider')
 							ceiling -= ceilingMod;
 						}
 					}
-					
+
 					// align the value with a step
 					var mod = (normalized - $scope.floor) % stepWidth;
 					if(mod < stepWidth/2) {
@@ -665,15 +665,15 @@ angular.module('vr.directives.slider')
 						normalized += stepWidth - mod;
 					}
 				}
-				
+
 				// ensure the value is within the bounds
 				normalized = Math.min(ceiling, Math.max(normalized, floor));
-				
+
 				if(options.precision >= 0) {
 					// format the value to the correct decimal precision
 					normalized = parseFloat(normalized.toFixed(options.precision));
 				}
-				
+
 				if(normalized === value) {
 					// the normalized value is the same as the original, fire the onChange callback for this knob
 					knob.onChange && knob.onChange(value);
@@ -708,7 +708,7 @@ angular.module('vr.directives.slider')
 			// watch this knob's model for changes
 			$scope.$watch(function() { return knob.ngModel.$modelValue; }, function(value) {
 				update(value);
-				
+
 			});
 
 			// watch for updates on the slider and update accordingly
@@ -724,7 +724,7 @@ angular.module('vr.directives.slider')
 
 			// initialize the bars
 			updateBars();
-			
+
 			// listen for when this knob is removed from the DOM, remove it from the list and set to disabled
 			knob.elem.on('$destroy', function() {
 				$scope.knobs.splice($scope.knobs.indexOf(knob), 1);
@@ -762,7 +762,7 @@ angular.module('vr.directives.slider')
 		this.registerBar = function(bar) {
 			// add the bar to the list
 			registeredBars.push(bar);
-			
+
 			// listen for when this bar is removed from the DOM and remove it from the list
 			bar.elem.on('$destroy', function() {
 				var index = registeredBars.indexOf(bar);
@@ -770,7 +770,7 @@ angular.module('vr.directives.slider')
 					registeredBars.splice(index, 1);
 				}
 			});
-			
+
 			return {
 				start: function(ev) {
 					if(!$scope.disabled) {
